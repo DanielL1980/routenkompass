@@ -41,7 +41,19 @@ exports.wegpunkteVorschlagen = onCall(
       throw new HttpsError('unauthenticated', 'Anmeldung erforderlich.');
     }
 
-    const { start, ziel, klasse, fahrzeit, kilometer, inhalte, anzahlWegpunkte } = request.data;
+    const {
+      start,
+      ziel,
+      klasse,
+      fahrzeit,
+      kilometer,
+      inhalte,
+      anzahlWegpunkte,
+      direktDistanzKm,
+      direktDauerMin,
+      vorherigeDistanzKm,
+      vorherigeDauerMin,
+    } = request.data;
 
     if (!start || !ziel || !Array.isArray(inhalte) || inhalte.length === 0) {
       throw new HttpsError(
@@ -56,6 +68,11 @@ exports.wegpunkteVorschlagen = onCall(
     const systemPrompt = `Du bist ein Routenplanungs-Assistent für LKW-Fahrausbildungen der Bundeswehr.
 Du schlägst strategische Wegpunkte vor die bestimmte Ausbildungsinhalte abbilden.
 
+WICHTIG - Fahrzeit und Kilometer sind verbindliche Zielvorgaben, keine groben Richtwerte:
+- Die tatsächlich gefahrene Strecke (inkl. aller Umwege über deine Wegpunkte) muss der Ziel-Fahrzeit und den Ziel-Kilometern SEHR NAH kommen (Toleranz: wenige Minuten bzw. wenige Kilometer)
+- Du bekommst die direkte Entfernung Start->Ziel (ohne Umweg) genannt - daraus ergibt sich, wie viel zusaetzlicher Umweg durch deine Wegpunkte noetig ist, um die Zielvorgabe zu erreichen
+- Wird dir eine Rueckmeldung zu einem vorherigen Versuch gegeben, WAR DIESER UNGENAU - passe die Wegpunkte gezielt an (naeher am direkten Weg wenn der letzte Versuch zu lang war, groesserer Umweg wenn er zu kurz war)
+
 WICHTIG - jede "address" muss eine echte, per Geocoding auffindbare Adresse sein:
 - Nutze AUSSCHLIESSLICH echte Ortsnamen oder Straße+Hausnummer+PLZ+Ort (z.B. "Werder (Havel)" oder "Marktplatz 1, 14776 Brandenburg an der Havel")
 - Das "address"-Feld darf NIEMALS Begriffe wie "Autobahnausfahrt", "Autobahnauffahrt", "Autobahndreieck", "Autobahnkreuz" oder Straßen-Kilometerangaben enthalten - solche Bezeichnungen sind nicht geocodierbar und fuehren zu falschen, weit entfernten Treffern
@@ -66,16 +83,32 @@ Antworte NUR mit einem JSON-Array von Wegpunkten.
 Jeder Wegpunkt hat: { "address": string, "reason": string, "inhalt": string }
 Keine Erklärungen, kein Markdown, nur reines JSON.`;
 
+    const direktInfo =
+      direktDistanzKm != null && direktDauerMin != null
+        ? `\nDirekte Entfernung Start->Ziel (ohne Umweg): ${direktDistanzKm.toFixed(1)} km / ${direktDauerMin.toFixed(0)} Minuten`
+        : '';
+
+    const feedbackInfo =
+      vorherigeDistanzKm != null && vorherigeDauerMin != null
+        ? `\n\nRÜCKMELDUNG ZUM VORHERIGEN VERSUCH: Die damit berechnete Route ergab ${vorherigeDistanzKm.toFixed(1)} km / ${vorherigeDauerMin.toFixed(0)} Minuten - das war ${
+            vorherigeDistanzKm > kilometer ? 'ZU LANG' : 'ZU KURZ'
+          } im Vergleich zur Zielvorgabe. Waehle diesmal andere Wegpunkte (${
+            vorherigeDistanzKm > kilometer
+              ? 'naeher am direkten Weg, weniger Umweg'
+              : 'mit groesserem Umweg als beim letzten Versuch'
+          }).`
+        : '';
+
     const userPrompt = `
 Startort: ${start}
-Zielort: ${ziel}
+Zielort: ${ziel}${direktInfo}
 Fahrzeugklasse: ${klasse}
 Fahrzeit: ${fahrzeit} Minuten
 Ziel-Kilometer: ${kilometer} km
-Ausbildungsinhalte: ${inhalteLabels}
+Ausbildungsinhalte: ${inhalteLabels}${feedbackInfo}
 
 Schlage ${anzahlWegpunkte} Zwischenpunkte vor die diese Inhalte abbilden.
-Berücksichtige dass die Gesamtstrecke ca. ${kilometer} km ergeben soll.`;
+Die Gesamtstrecke MUSS ca. ${kilometer} km und ca. ${fahrzeit} Minuten ergeben - das ist wichtiger als die exakte Anzahl der Wegpunkte.`;
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',

@@ -31,6 +31,7 @@ export default function App() {
     ampelStatus,
     ladeStatus,
     fehler,
+    versucheAnzahl,
     routePlanen,
     routeNeuBerechnen,
   } = useRoutenplanung();
@@ -109,6 +110,7 @@ export default function App() {
           onKriterienAendern={setKriterien}
           onRoutePlanen={handleRoutePlanen}
           ladeStatus={ladeStatus}
+          versucheAnzahl={versucheAnzahl}
         />
 
         <FahrzeugProfil

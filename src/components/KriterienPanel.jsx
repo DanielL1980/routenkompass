@@ -2,7 +2,13 @@ import { AUSBILDUNGSINHALTE } from '../data/ausbildungsinhalte';
 import AdresseAutocomplete from './AdresseAutocomplete';
 
 // Erfassung der Routenkriterien: Start/Ziel, Fahrzeit, km, Ausbildungsinhalte
-export default function KriterienPanel({ kriterien, onKriterienAendern, onRoutePlanen, ladeStatus }) {
+export default function KriterienPanel({
+  kriterien,
+  onKriterienAendern,
+  onRoutePlanen,
+  ladeStatus,
+  versucheAnzahl,
+}) {
   function feldAendern(feld, wert) {
     onKriterienAendern({ ...kriterien, [feld]: wert });
   }
@@ -106,7 +112,9 @@ export default function KriterienPanel({ kriterien, onKriterienAendern, onRouteP
         disabled={ladeStatus || !startGueltig || !zielGueltig || kriterien.inhalte.length === 0}
         className="min-h-[44px] w-full rounded bg-stahlblau px-4 py-2 font-medium text-white hover:bg-blue-800 disabled:opacity-50"
       >
-        {ladeStatus ? 'Route wird geplant …' : 'Route planen'}
+        {ladeStatus
+          ? `Route wird geplant${versucheAnzahl > 1 ? ` (Versuch ${versucheAnzahl}/4 zur Genauigkeit)` : ' …'}`
+          : 'Route planen'}
       </button>
     </div>
   );

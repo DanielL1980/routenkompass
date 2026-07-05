@@ -16,6 +16,10 @@ const wegpunkteVorschlagenFn = httpsCallable(functions, 'wegpunkteVorschlagen');
  * @param {number} kriterien.kilometer
  * @param {string[]} kriterien.inhalte - IDs aus AUSBILDUNGSINHALTE
  * @param {number} kriterien.anzahlWegpunkte
+ * @param {number} [kriterien.direktDistanzKm] - Luftlinie/Direktroute Start->Ziel ohne Umweg
+ * @param {number} [kriterien.direktDauerMin]
+ * @param {number} [kriterien.vorherigeDistanzKm] - Ergebnis eines vorherigen Versuchs (fuer Retry-Feedback)
+ * @param {number} [kriterien.vorherigeDauerMin]
  * @returns {Promise<Array<{address: string, reason: string, inhalt: string}>>}
  */
 export async function holeWegpunktVorschlaege(kriterien) {
