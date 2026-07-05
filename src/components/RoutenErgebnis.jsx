@@ -22,7 +22,7 @@ export default function RoutenErgebnis({ route, ampelStatus, wegpunkte, start, z
     );
   }
 
-  const alleWegpunkte = [{ address: start }, ...wegpunkte, { address: ziel }];
+  const alleWegpunkte = [start, ...wegpunkte, ziel];
   const googleMapsUrl = buildGoogleMapsUrl(alleWegpunkte);
 
   return (

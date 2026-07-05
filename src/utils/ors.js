@@ -1,41 +1,88 @@
 // OpenRouteService API-Wrapper - LKW-Routing (driving-hgv)
 // Fahrzeugsicherheit liegt vollstaendig hier: Abmessungen werden bei jedem Request erzwungen
 const ORS_BASIS_URL = 'https://api.openrouteservice.org/v2/directions/driving-hgv/geojson';
-const ORS_GEOCODE_URL = 'https://api.openrouteservice.org/geocode/search';
+const ORS_SEARCH_URL = 'https://api.openrouteservice.org/geocode/search';
+const ORS_AUTOCOMPLETE_URL = 'https://api.openrouteservice.org/geocode/autocomplete';
 
-// Bounding Box Brandenburg/Berlin - verhindert Fehltreffer des Geocoders auf
-// gleichnamige, aber weit entfernte Orte (z.B. "Werder" gibt es auch in
-// Baden-Wuerttemberg). Deckt Brandenburg + Berlin mit Puffer ab.
-const REGION_BBOX = { minLon: 11.0, minLat: 51.2, maxLon: 14.9, maxLat: 53.7 };
+// Realistische maximale Entfernung eines Wegpunkts vom Startort: LKW faehrt
+// laut StVO nie schneller als 80 km/h, Ausbildungsfahrten dauern max. ~180 Min.
+// -> geometrisch maximal ~240 km, mit Puffer fuer Umwege 250 km.
+const MAX_ENTFERNUNG_VOM_START_KM = 250;
 
 /**
- * Wandelt eine Adresse in Koordinaten um (Region auf Brandenburg/Berlin eingegrenzt)
+ * Liefert Adress-/Orts-/POI-Vorschlaege waehrend der Eingabe (Navi-Style
+ * Autocomplete). Deckt Ortsnamen, PLZ, Strassen und POIs (z.B. Kasernen) ab,
+ * sofern in OpenStreetMap erfasst.
+ * @param {string} text
+ * @returns {Promise<Array<{label: string, lat: number, lng: number}>>}
+ */
+export async function autocompleteAdresse(text) {
+  if (!text || text.trim().length < 2) return [];
+
+  const apiKey = import.meta.env.VITE_ORS_API_KEY;
+  const url =
+    `${ORS_AUTOCOMPLETE_URL}?api_key=${apiKey}&text=${encodeURIComponent(text)}` +
+    `&boundary.country=DE&size=10`;
+
+  const response = await fetch(url);
+  if (!response.ok) return [];
+
+  const daten = await response.json();
+  if (!daten.features) return [];
+
+  return daten.features.map((feature) => {
+    const [lng, lat] = feature.geometry.coordinates;
+    return { label: feature.properties.label, lat, lng };
+  });
+}
+
+/**
+ * Wandelt eine Adresse in Koordinaten um. Optional mit Fokuspunkt (z.B. der
+ * Startort der Route), der die Ergebnisse dorthin gewichtet - ohne andere
+ * Regionen Deutschlands hart auszuschliessen.
  * @param {string} adresse
+ * @param {{lat: number, lng: number}} [fokusPunkt]
  * @returns {Promise<{lat: number, lng: number}>}
  */
-export async function geocodeAdresse(adresse) {
+export async function geocodeAdresse(adresse, fokusPunkt) {
   try {
-    return await geocodeSuche(adresse);
+    return await geocodeMitPlausibilitaet(adresse, fokusPunkt);
   } catch (error) {
     // Fallback: Claude liefert manchmal zu spezifische/erfundene Beschreibungen
     // (z.B. "Autobahnausfahrt X, B1, ..."), die nicht auffindbar sind.
     // Dann nur den letzten, allgemeineren Teil der Adresse (Ort) versuchen.
     const teile = adresse.split(',').map((t) => t.trim());
     if (teile.length > 1) {
-      return await geocodeSuche(teile[teile.length - 1]);
+      return await geocodeMitPlausibilitaet(teile[teile.length - 1], fokusPunkt);
     }
     throw error;
   }
 }
 
-async function geocodeSuche(adresse) {
+async function geocodeMitPlausibilitaet(adresse, fokusPunkt) {
+  const treffer = await geocodeSuche(adresse, fokusPunkt);
+
+  if (fokusPunkt) {
+    const entfernung = entfernungKm(fokusPunkt, treffer);
+    if (entfernung > MAX_ENTFERNUNG_VOM_START_KM) {
+      throw new Error(
+        `Treffer fuer "${adresse}" liegt ${Math.round(entfernung)} km vom Startort entfernt - unplausibel fuer eine Ausbildungsfahrt`
+      );
+    }
+  }
+
+  return treffer;
+}
+
+async function geocodeSuche(adresse, fokusPunkt) {
   const apiKey = import.meta.env.VITE_ORS_API_KEY;
-  const url =
-    `${ORS_GEOCODE_URL}?api_key=${apiKey}&text=${encodeURIComponent(adresse)}` +
-    `&boundary.country=DE` +
-    `&boundary.rect.min_lon=${REGION_BBOX.minLon}&boundary.rect.min_lat=${REGION_BBOX.minLat}` +
-    `&boundary.rect.max_lon=${REGION_BBOX.maxLon}&boundary.rect.max_lat=${REGION_BBOX.maxLat}` +
-    `&size=1`;
+  let url =
+    `${ORS_SEARCH_URL}?api_key=${apiKey}&text=${encodeURIComponent(adresse)}` +
+    `&boundary.country=DE&size=1`;
+
+  if (fokusPunkt) {
+    url += `&focus.point.lat=${fokusPunkt.lat}&focus.point.lon=${fokusPunkt.lng}`;
+  }
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -44,11 +91,24 @@ async function geocodeSuche(adresse) {
 
   const daten = await response.json();
   if (!daten.features || daten.features.length === 0) {
-    throw new Error(`Keine Koordinaten gefunden fuer "${adresse}" in der Region Brandenburg/Berlin`);
+    throw new Error(`Keine Koordinaten gefunden fuer "${adresse}"`);
   }
 
   const [lng, lat] = daten.features[0].geometry.coordinates;
   return { lat, lng };
+}
+
+// Haversine-Formel - Luftlinie zwischen zwei Punkten in km
+function entfernungKm(a, b) {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
 /**

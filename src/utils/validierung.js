@@ -10,12 +10,3 @@ export function validiereRoute(distanzKm, dauernMin, kriterien) {
   if (kmAbweichung <= 0.2 && zeitAbweichung <= 0.2) return 'gelb';
   return 'rot';
 }
-
-// Prueft ob eine Adresse praezise genug ist (Strasse Hausnummer, PLZ Ort) statt
-// nur eines vagen Ortsnamens - noetig, damit Start/Ziel nicht nur auf den
-// Stadt-Mittelpunkt geocodiert werden, sondern auf die tatsaechliche Adresse
-export function istPraeziseAdresse(adresse) {
-  const hatKomma = adresse.includes(',');
-  const hatZiffer = /\d/.test(adresse);
-  return hatKomma && hatZiffer;
-}

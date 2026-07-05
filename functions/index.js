@@ -48,7 +48,7 @@ WICHTIG - jede "address" muss eine echte, per Geocoding auffindbare Adresse sein
 - Nutze AUSSCHLIESSLICH echte Ortsnamen oder Straße+Hausnummer+PLZ+Ort (z.B. "Werder (Havel)" oder "Marktplatz 1, 14776 Brandenburg an der Havel")
 - Das "address"-Feld darf NIEMALS Begriffe wie "Autobahnausfahrt", "Autobahnauffahrt", "Autobahndreieck", "Autobahnkreuz" oder Straßen-Kilometerangaben enthalten - solche Bezeichnungen sind nicht geocodierbar und fuehren zu falschen, weit entfernten Treffern
 - Wenn ein Wegpunkt eine Autobahn-Anschlussstelle abbilden soll: nenne im "address"-Feld stattdessen den naechstgelegenen echten Ort/Ortsteil (z.B. "Lehnin" statt "Autobahnauffahrt Lehnin"), und beschreibe die Anschlussstelle im "reason"-Feld
-- Alle Orte muessen real in der Region Brandenburg/Berlin liegen
+- Alle Wegpunkte muessen sinnvoll auf der Strecke zwischen Startort und Zielort liegen. LKW faehrt laut StVO nie schneller als 80 km/h, die Fahrzeit ist auf maximal 180 Minuten begrenzt - waehle daher ausschliesslich Orte in unmittelbarer Naehe der direkten Route, nicht in weit entfernten Regionen Deutschlands
 
 Antworte NUR mit einem JSON-Array von Wegpunkten.
 Jeder Wegpunkt hat: { "address": string, "reason": string, "inhalt": string }
@@ -61,7 +61,6 @@ Fahrzeugklasse: ${klasse}
 Fahrzeit: ${fahrzeit} Minuten
 Ziel-Kilometer: ${kilometer} km
 Ausbildungsinhalte: ${inhalteLabels}
-Region: Brandenburg / Berlin
 
 Schlage ${anzahlWegpunkte} Zwischenpunkte vor die diese Inhalte abbilden.
 Berücksichtige dass die Gesamtstrecke ca. ${kilometer} km ergeben soll.`;

@@ -1,14 +1,11 @@
 import { AUSBILDUNGSINHALTE } from '../data/ausbildungsinhalte';
-import { istPraeziseAdresse } from '../utils/validierung';
+import AdresseAutocomplete from './AdresseAutocomplete';
 
 // Erfassung der Routenkriterien: Start/Ziel, Fahrzeit, km, Ausbildungsinhalte
 export default function KriterienPanel({ kriterien, onKriterienAendern, onRoutePlanen, ladeStatus }) {
   function feldAendern(feld, wert) {
     onKriterienAendern({ ...kriterien, [feld]: wert });
   }
-
-  const startPraezise = !kriterien.start || istPraeziseAdresse(kriterien.start);
-  const zielPraezise = !kriterien.ziel || istPraeziseAdresse(kriterien.ziel);
 
   function inhaltUmschalten(inhaltId) {
     const inhalte = kriterien.inhalte.includes(inhaltId)
@@ -17,45 +14,26 @@ export default function KriterienPanel({ kriterien, onKriterienAendern, onRouteP
     feldAendern('inhalte', inhalte);
   }
 
+  const startGueltig = Boolean(kriterien.start?.lat && kriterien.start?.lng);
+  const zielGueltig = Boolean(kriterien.ziel?.lat && kriterien.ziel?.lng);
+
   return (
     <div className="rounded-lg bg-gray-800 p-4">
       <h2 className="mb-3 text-lg font-semibold text-white">Kriterien</h2>
 
       <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">Startadresse</label>
-          <input
-            type="text"
-            value={kriterien.start}
-            onChange={(e) => feldAendern('start', e.target.value)}
-            placeholder="Musterstraße 1, 14467 Potsdam"
-            className={`min-h-[44px] w-full rounded border bg-gray-700 px-3 py-2 text-white ${
-              startPraezise ? 'border-gray-600' : 'border-yellow-500'
-            }`}
-          />
-          {!startPraezise && (
-            <p className="mt-1 text-xs text-yellow-500">
-              Bitte präzise Adresse angeben: Straße Hausnummer, PLZ Ort
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">Zieladresse</label>
-          <input
-            type="text"
-            value={kriterien.ziel}
-            onChange={(e) => feldAendern('ziel', e.target.value)}
-            placeholder="Bahnhofstraße 5, 14612 Falkensee"
-            className={`min-h-[44px] w-full rounded border bg-gray-700 px-3 py-2 text-white ${
-              zielPraezise ? 'border-gray-600' : 'border-yellow-500'
-            }`}
-          />
-          {!zielPraezise && (
-            <p className="mt-1 text-xs text-yellow-500">
-              Bitte präzise Adresse angeben: Straße Hausnummer, PLZ Ort
-            </p>
-          )}
-        </div>
+        <AdresseAutocomplete
+          label="Startadresse"
+          placeholder="Ort, Straße + Hausnummer oder POI (z.B. Havelland-Kaserne)"
+          wert={kriterien.start}
+          onAuswahl={(auswahl) => feldAendern('start', auswahl)}
+        />
+        <AdresseAutocomplete
+          label="Zieladresse"
+          placeholder="Ort, Straße + Hausnummer oder POI (z.B. Havelland-Kaserne)"
+          wert={kriterien.ziel}
+          onAuswahl={(auswahl) => feldAendern('ziel', auswahl)}
+        />
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-3">
@@ -114,12 +92,7 @@ export default function KriterienPanel({ kriterien, onKriterienAendern, onRouteP
       <button
         type="button"
         onClick={onRoutePlanen}
-        disabled={
-          ladeStatus ||
-          !istPraeziseAdresse(kriterien.start) ||
-          !istPraeziseAdresse(kriterien.ziel) ||
-          kriterien.inhalte.length === 0
-        }
+        disabled={ladeStatus || !startGueltig || !zielGueltig || kriterien.inhalte.length === 0}
         className="min-h-[44px] w-full rounded bg-stahlblau px-4 py-2 font-medium text-white hover:bg-blue-800 disabled:opacity-50"
       >
         {ladeStatus ? 'Route wird geplant …' : 'Route planen'}

@@ -13,8 +13,8 @@ import RoutenErgebnis from './components/RoutenErgebnis';
 import RoutenListe from './components/RoutenListe';
 
 const ANFANGS_KRITERIEN = {
-  start: '',
-  ziel: '',
+  start: null,
+  ziel: null,
   klasse: 'C',
   fahrzeit: 90,
   kilometer: 60,
@@ -63,10 +63,10 @@ export default function App() {
   async function handleSpeichern() {
     if (!user || !route) return;
 
-    const alleWegpunkte = [{ address: kriterien.start }, ...wegpunkte, { address: kriterien.ziel }];
+    const alleWegpunkte = [kriterien.start, ...wegpunkte, kriterien.ziel];
 
     await routeSpeichern(user.uid, {
-      name: `${kriterien.start} → ${kriterien.ziel}`,
+      name: `${kriterien.start.address} → ${kriterien.ziel.address}`,
       klasse: kriterien.klasse,
       fahrzeug,
       kriterien: {

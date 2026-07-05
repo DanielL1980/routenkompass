@@ -4,7 +4,9 @@ import { berechneRoute, geocodeAdresse } from '../utils/ors';
 import { validiereRoute } from '../utils/validierung';
 
 // Orchestriert den kompletten Ablauf: Claude schlaegt Wegpunkte vor,
-// diese werden geocodiert, dann berechnet ORS die LKW-sichere Route
+// diese werden geocodiert, dann berechnet ORS die LKW-sichere Route.
+// Start/Ziel kommen bereits mit Koordinaten aus der Adress-Autocomplete-
+// Auswahl (siehe AdresseAutocomplete.jsx) - kein zusaetzliches Geocoding noetig.
 export function useRoutenplanung() {
   const [wegpunkte, setWegpunkte] = useState([]);
   const [route, setRoute] = useState(null);
@@ -19,8 +21,8 @@ export function useRoutenplanung() {
     try {
       // 1. Claude schlaegt Wegpunkte basierend auf Ausbildungsinhalten vor
       const vorschlaege = await holeWegpunktVorschlaege({
-        start: kriterien.start,
-        ziel: kriterien.ziel,
+        start: kriterien.start.address,
+        ziel: kriterien.ziel.address,
         klasse: kriterien.klasse,
         fahrzeit: kriterien.fahrzeit,
         kilometer: kriterien.kilometer,
@@ -28,18 +30,16 @@ export function useRoutenplanung() {
         anzahlWegpunkte: kriterien.anzahlWegpunkte,
       });
 
-      // 2. Start, Wegpunkte und Ziel geocodieren
-      const startKoordinaten = await geocodeAdresse(kriterien.start);
+      // 2. Wegpunkte geocodieren - Startort als Fokuspunkt fuer plausible Treffer
       const wegpunkteMitKoordinaten = await Promise.all(
         vorschlaege.map(async (wp) => {
-          const koordinaten = await geocodeAdresse(wp.address);
+          const koordinaten = await geocodeAdresse(wp.address, kriterien.start);
           return { ...wp, ...koordinaten };
         })
       );
-      const zielKoordinaten = await geocodeAdresse(kriterien.ziel);
 
       // 3. ORS berechnet die LKW-sichere Route ueber alle Punkte
-      const alleKoordinaten = [startKoordinaten, ...wegpunkteMitKoordinaten, zielKoordinaten];
+      const alleKoordinaten = [kriterien.start, ...wegpunkteMitKoordinaten, kriterien.ziel];
       const ergebnis = await berechneRoute(alleKoordinaten, fahrzeug);
 
       const status = validiereRoute(ergebnis.distanzKm, ergebnis.dauernMin, kriterien);
@@ -62,9 +62,7 @@ export function useRoutenplanung() {
     setFehler(null);
 
     try {
-      const startKoordinaten = await geocodeAdresse(kriterien.start);
-      const zielKoordinaten = await geocodeAdresse(kriterien.ziel);
-      const alleKoordinaten = [startKoordinaten, ...wegpunkteAktualisiert, zielKoordinaten];
+      const alleKoordinaten = [kriterien.start, ...wegpunkteAktualisiert, kriterien.ziel];
 
       const ergebnis = await berechneRoute(alleKoordinaten, fahrzeug);
       const status = validiereRoute(ergebnis.distanzKm, ergebnis.dauernMin, kriterien);
