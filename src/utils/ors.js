@@ -14,15 +14,22 @@ const MAX_ENTFERNUNG_VOM_START_KM = 250;
  * Autocomplete). Deckt Ortsnamen, PLZ, Strassen und POIs (z.B. Kasernen) ab,
  * sofern in OpenStreetMap erfasst.
  * @param {string} text
+ * @param {{lat: number, lng: number}} [fokusPunkt] - gewichtet Treffer in der
+ *   Naehe (z.B. bereits gewaehlter Startort), verhindert Verwechslungen bei
+ *   generischen Strassennamen die es in vielen Staedten gibt
  * @returns {Promise<Array<{label: string, lat: number, lng: number}>>}
  */
-export async function autocompleteAdresse(text) {
+export async function autocompleteAdresse(text, fokusPunkt) {
   if (!text || text.trim().length < 2) return [];
 
   const apiKey = import.meta.env.VITE_ORS_API_KEY;
-  const url =
+  let url =
     `${ORS_AUTOCOMPLETE_URL}?api_key=${apiKey}&text=${encodeURIComponent(text)}` +
     `&boundary.country=DE&size=10`;
+
+  if (fokusPunkt) {
+    url += `&focus.point.lat=${fokusPunkt.lat}&focus.point.lon=${fokusPunkt.lng}`;
+  }
 
   const response = await fetch(url);
   if (!response.ok) return [];

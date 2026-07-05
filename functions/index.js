@@ -7,15 +7,27 @@ const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 
 // Deutsche Labels der Ausbildungsinhalte - Spiegel von src/data/ausbildungsinhalte.js
 // (separates Deployment, daher hier dupliziert statt importiert)
+// Basiert auf Aufbaustufe A + Autobahn-Inhalten der Leistungsstufe B
+// (Aufzeichnungsblatt Ausbildungsstand DFE Kl. C/CE)
 const INHALT_LABELS = {
-  autobahn: 'Autobahn',
-  landstrasse: 'Landstraße',
-  innerorts: 'Innerorts / Stadtverkehr',
-  steigung: 'Steigungen / Gefälle',
-  kreuzung: 'Kreuzungen / Vorfahrt',
-  kreisverkehr: 'Kreisverkehr',
-  einfaedeln: 'Einfädeln / Ausfädeln',
-  rangieren: 'Rangieren / Rückwärtsfahren',
+  anfahren_steigung: 'Anfahren, Gangwechsel (Ebene/Steigung/Gefälle)',
+  fahrbahnbenutzung: 'Fahrbahnbenutzung in Kurven (ein-/mehrspurig)',
+  kreuzungen_vorfahrt: 'Abbiegen, Kreuzungen und Vorfahrtregeln',
+  ueberholen_spurwechsel: 'Fahrstreifenwechsel, Überholen und Vorbeifahren',
+  verkehrsbeobachtung: 'Verkehrsbeobachtung, Verkehrszeichen und Geschwindigkeitsanpassung',
+  sicherheitsabstand: 'Sicherheitsabstände',
+  kreisverkehr: 'Verhalten am und im Kreisverkehr',
+  bahnuebergang: 'Verhalten an Bahnübergängen',
+  fussgaenger_radfahrer: 'Verhalten gegenüber Fußgängern und Radfahrern (inkl. Überwege)',
+  verkehrsberuhigt_engstellen: 'Verkehrsberuhigte Bereiche, Engstellen und haltende Busse',
+  warneinrichtungen: 'Warneinrichtungen und Absichern liegengebliebener Fahrzeuge',
+  wenden_rueckwaerts: 'Wenden und Rückwärtsfahren mit/ohne Anhänger',
+  einfaedeln_ausfaedeln: 'Auf- und Abfahren (Einfädeln/Ausfädeln)',
+  stau_stockend: 'Verhalten bei Stau und stockendem Verkehr',
+  ueberholverbot_spurwahl: 'Überholverbot und Spurwahl für LKW',
+  abstand_hohe_geschwindigkeit: 'Sicherheitsabstand bei hoher Geschwindigkeit',
+  naesse_aquaplaning: 'Verhalten bei Nässe und Aquaplaning',
+  daemmerung_dunkelheit: 'Fahren bei Dämmerung oder Dunkelheit',
 };
 
 // Cloud Function als Proxy fuer die Claude API - der Anthropic API-Key bleibt

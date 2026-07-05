@@ -17,6 +17,11 @@ export default function KriterienPanel({ kriterien, onKriterienAendern, onRouteP
   const startGueltig = Boolean(kriterien.start?.lat && kriterien.start?.lng);
   const zielGueltig = Boolean(kriterien.ziel?.lat && kriterien.ziel?.lng);
 
+  const inhalteNachStufe = AUSBILDUNGSINHALTE.reduce((gruppen, inhalt) => {
+    (gruppen[inhalt.stufe] ||= []).push(inhalt);
+    return gruppen;
+  }, {});
+
   return (
     <div className="rounded-lg bg-gray-800 p-4">
       <h2 className="mb-3 text-lg font-semibold text-white">Kriterien</h2>
@@ -33,6 +38,7 @@ export default function KriterienPanel({ kriterien, onKriterienAendern, onRouteP
           placeholder="Ort, Straße + Hausnummer oder POI (z.B. Havelland-Kaserne)"
           wert={kriterien.ziel}
           onAuswahl={(auswahl) => feldAendern('ziel', auswahl)}
+          fokusPunkt={kriterien.start}
         />
       </div>
 
@@ -71,22 +77,27 @@ export default function KriterienPanel({ kriterien, onKriterienAendern, onRouteP
 
       <div className="mb-4">
         <p className="mb-2 text-xs text-gray-400">Ausbildungsinhalte</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {AUSBILDUNGSINHALTE.map((inhalt) => (
-            <button
-              key={inhalt.id}
-              type="button"
-              onClick={() => inhaltUmschalten(inhalt.id)}
-              className={`min-h-[44px] rounded px-3 py-2 text-left text-sm ${
-                kriterien.inhalte.includes(inhalt.id)
-                  ? 'bg-stahlblau text-white'
-                  : 'bg-gray-700 text-gray-300'
-              }`}
-            >
-              {inhalt.label}
-            </button>
-          ))}
-        </div>
+        {Object.entries(inhalteNachStufe).map(([stufe, inhalte]) => (
+          <div key={stufe} className="mb-3 last:mb-0">
+            <p className="mb-2 text-sm font-medium text-gray-300">{stufe}</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {inhalte.map((inhalt) => (
+                <button
+                  key={inhalt.id}
+                  type="button"
+                  onClick={() => inhaltUmschalten(inhalt.id)}
+                  className={`min-h-[44px] rounded px-3 py-2 text-left text-sm ${
+                    kriterien.inhalte.includes(inhalt.id)
+                      ? 'bg-stahlblau text-white'
+                      : 'bg-gray-700 text-gray-300'
+                  }`}
+                >
+                  {inhalt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       <button

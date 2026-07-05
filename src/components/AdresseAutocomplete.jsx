@@ -7,7 +7,7 @@ const DEBOUNCE_MS = 300;
 // (Ort, PLZ, Strasse, POIs wie Kasernen). Der Wert gilt erst als gueltig,
 // wenn ein Vorschlag aus der Liste ausgewaehlt wurde - dadurch liegen
 // Koordinaten immer exakt vor, ohne separaten Geocoding-Schritt.
-export default function AdresseAutocomplete({ label, placeholder, wert, onAuswahl }) {
+export default function AdresseAutocomplete({ label, placeholder, wert, onAuswahl, fokusPunkt }) {
   const [eingabe, setEingabe] = useState(wert?.address || '');
   const [vorschlaege, setVorschlaege] = useState([]);
   const [zeigeDropdown, setZeigeDropdown] = useState(false);
@@ -40,7 +40,7 @@ export default function AdresseAutocomplete({ label, placeholder, wert, onAuswah
     }
 
     debounceRef.current = setTimeout(async () => {
-      const ergebnisse = await autocompleteAdresse(neuerText);
+      const ergebnisse = await autocompleteAdresse(neuerText, fokusPunkt);
       setVorschlaege(ergebnisse);
       setZeigeDropdown(ergebnisse.length > 0);
     }, DEBOUNCE_MS);
